@@ -27,8 +27,10 @@ final class MockBundle {
     ///
     /// - Parameter request: URLRequest to attempt to load
     /// - Returns: The MockRequestResponse, if it can be loaded
-    func loadRequestResponse(for request: URLRequest) -> MockRequestResponse? {
-        guard let fileName = SerializationUtils.fileName(for: .request(request)) else { return nil }
+    func loadRequestResponse(for request: URLRequest, fileSequence: Int) -> MockRequestResponse? {
+        guard let fileName = SerializationUtils.fileName(for: .request(request)) else {
+            return nil
+        }
 
         var targetURL: URL?
         var targetLoadingURL: URL?
@@ -42,13 +44,6 @@ final class MockBundle {
             os_log("Loading request %@ from: %@", log: MockDuck.log, type: .debug, "\(request)", inputURL.path)
             targetURL = inputURL
             targetLoadingURL = loadingURL
-        } else if
-            let inputURL = recordingURL?.appendingPathComponent(fileName),
-            FileManager.default.fileExists(atPath: inputURL.path)
-        {
-            os_log("Loading request %@ from: %@", log: MockDuck.log, type: .debug, "\(request)", inputURL.path)
-            targetURL = inputURL
-            targetLoadingURL = recordingURL
         } else {
             os_log("Request %@ not found on disk. Expected file name: %@", log: MockDuck.log, type: .debug, "\(request)", fileName)
         }
@@ -62,22 +57,37 @@ final class MockBundle {
             do {
                 let data = try Data(contentsOf: targetURL)
 
-                let sequence: MockRequestResponse = try decoder.decode(MockRequestResponse.self, from: data)
+                let chain: MockRequestResponseChain = try decoder.decode(MockRequestResponseChain.self, from: data)
+                let sequence: MockRequestResponse
+                if request.url?.path.contains("bill") ?? false {
+                    os_log("responseData from", log: MockDuck.log, type: .debug)
+                }
+                if request.url?.path.contains("delivery_info") ?? false {
+                    os_log("responseData from", log: MockDuck.log, type: .debug)
+                }
+                if chain.mockRequestResponses.count > fileSequence {
+                    sequence = chain.mockRequestResponses[fileSequence]
+                } else
+                {
+                    sequence = chain.mockRequestResponses.first!
+                }
 
                 // Load the response data if the format is supported.
                 // This should be the same filename with a different extension.
-                if let dataFileName = SerializationUtils.fileName(for: .responseData(sequence, sequence)) {
+                if let dataFileName = SerializationUtils.fileName(for: .responseData(sequence, sequence), chainSequenceIndex: fileSequence) {
                     let dataURL = targetLoadingURL.appendingPathComponent(dataFileName)
+                    os_log("responseData from: %@", log: MockDuck.log, type: .debug, "\(dataURL)")
                     sequence.responseData = try Data(contentsOf: dataURL)
                 }
 
                 // Load the request body if the format is supported.
                 // This should be the same filename with a different extension.
-                if let bodyFileName = SerializationUtils.fileName(for: .requestBody(sequence)) {
+                if let bodyFileName = SerializationUtils.fileName(for: .requestBody(sequence), chainSequenceIndex: fileSequence) {
                     let bodyURL = targetLoadingURL.appendingPathComponent(bodyFileName)
+                    os_log("request.httpBody from: %@", log: MockDuck.log, type: .debug, "\(bodyURL)")
                     sequence.request.httpBody = try Data(contentsOf: bodyURL)
                 }
-
+                
                 result = sequence
             } catch {
                 os_log("Error decoding JSON: %@", log: MockDuck.log, type: .error, "\(error)")
@@ -102,10 +112,19 @@ final class MockBundle {
             let outputURL = recordingURL.appendingPathComponent(outputFileName)
             try createOutputDirectory(url: outputURL)
 
+            let chain: MockRequestResponseChain
+            if let existingData = try? Data(contentsOf: outputURL) {
+                chain = try! JSONDecoder().decode(MockRequestResponseChain.self, from: existingData)
+            } else {
+                chain = MockRequestResponseChain()
+            }
+            chain.mockRequestResponses.append(requestResponse)
+            let chainSequenceIndex = chain.mockRequestResponses.count-1
+
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted]
 
-            let data = try encoder.encode(requestResponse)
+            let data = try encoder.encode(chain)
             let result = String(data: data, encoding: .utf8)
 
             if let data = result?.data(using: .utf8) {
@@ -113,16 +132,18 @@ final class MockBundle {
 
                 // write out request body if the format is supported.
                 // This should be the same filename with a different extension.
-                if let requestBodyFileName = SerializationUtils.fileName(for: .requestBody(requestResponse)) {
+                if let requestBodyFileName = SerializationUtils.fileName(for: .requestBody(requestResponse), chainSequenceIndex: chainSequenceIndex) {
                     let requestBodyURL = recordingURL.appendingPathComponent(requestBodyFileName)
-                    try requestResponse.request.httpBody?.write(to: requestBodyURL, options: [.atomic])
+                    let request = (requestResponse.request.httpBody ?? Data()).prettyPrintedJSONData
+                    try request.write(to: requestBodyURL, options: [.atomic])
                 }
 
                 // write out response data if the format is supported.
                 // This should be the same filename with a different extension.
-                if let dataFileName = SerializationUtils.fileName(for: .responseData(requestResponse, requestResponse)) {
+                if let dataFileName = SerializationUtils.fileName(for: .responseData(requestResponse, requestResponse), chainSequenceIndex: chainSequenceIndex) {
                     let dataURL = recordingURL.appendingPathComponent(dataFileName)
-                    try requestResponse.responseData?.write(to: dataURL, options: [.atomic])
+                    let responseData = (requestResponse.responseData ?? Data()).prettyPrintedJSONData
+                    try responseData.write(to: dataURL, options: [.atomic])
                 }
 
                 os_log("Persisted network request to: %@", log: MockDuck.log, type: .debug, outputURL.path)
@@ -171,4 +192,26 @@ final class MockBundle {
                                             attributes: nil)
         }
     }
+}
+
+// MARK: - Pretty printing JSON Data
+
+extension Data {
+
+    var prettyPrintedJSONString: NSString? {
+        guard let object = try? JSONSerialization.jsonObject(with: self, options: []),
+            let data = try? JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted]),
+            let prettyPrintedString = NSString(data: data, encoding: String.Encoding.utf8.rawValue) else { return nil }
+
+        return prettyPrintedString
+    }
+
+    var prettyPrintedJSONData: Data {
+        if let prettyPrintedJSONString = self.prettyPrintedJSONString {
+            return (prettyPrintedJSONString as String).data(using: .utf8) ?? self
+        } else {
+            return self
+        }
+    }
+
 }

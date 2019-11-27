@@ -8,6 +8,25 @@
 
 import Foundation
 
+final class MockRequestResponseChain: Codable {
+    var mockRequestResponses: [MockRequestResponse] = []
+
+    // MARK: - Codable
+
+    enum CodingKeys: String, CodingKey {
+        case mockRequestResponses = "mockRequestResponses"
+    }
+
+    init() {
+        mockRequestResponses = []
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        mockRequestResponses = try container.decode([MockRequestResponse].self, forKey: .mockRequestResponses)
+    }
+}
+
 /// A basic container for holding a request, a response, and any associated data.
 final class MockRequestResponse: Codable {
 

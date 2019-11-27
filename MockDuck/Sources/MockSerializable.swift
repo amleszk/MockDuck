@@ -140,7 +140,7 @@ extension MockSerializableData {
             return "png"
         } else if contentType.contains("image/gif") {
             return "gif"
-        } else if contentType.contains("application/json") {
+        } else if contentType.contains("application/") && contentType.contains("json") {
             return "json"
         } else {
             return nil

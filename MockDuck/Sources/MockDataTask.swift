@@ -31,7 +31,9 @@ final class MockDataTask: URLSessionDataTask {
 
     // On task execution, look for a saved request or kick off the fallback request.
     override func resume() {
-        if let sequence = MockDuck.mockBundle.loadRequestResponse(for: request) {
+        let fileSequence = SerializationUtils.fileSequence(request: request)
+        if let sequence = MockDuck.mockBundle.loadRequestResponse(for: request, fileSequence: fileSequence) {
+            SerializationUtils.incrementFileSequence(request: request)
             // The request is found. Load the MockRequestResponse and call the completion/finish
             // with the stored data.
             completion(sequence, nil)
@@ -44,6 +46,7 @@ final class MockDataTask: URLSessionDataTask {
                 } else if let response = response {
                     let requestResponse = MockRequestResponse(request: self.request, response: response, responseData: data)
                     MockDuck.mockBundle.record(requestResponse: requestResponse)
+                    SerializationUtils.incrementFileSequence(request: self.request)
                     self.completion(requestResponse, nil)
                 } else {
                     self.completion(nil, ErrorType.unknown)
@@ -55,6 +58,10 @@ final class MockDataTask: URLSessionDataTask {
         } else {
             // The request isn't found and we shouldn't fallback to the network. Return a
             // well-crafted error in the completion.
+            let fileName = SerializationUtils.fileName(for: .request(request))
+            print(fileName)
+            let requestURL = request.url
+            print(requestURL)
             let error = NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet, userInfo: nil)
             completion(nil, error)
         }

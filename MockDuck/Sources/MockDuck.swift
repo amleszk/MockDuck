@@ -21,6 +21,8 @@ public protocol MockDuckDelegate: class {
     /// - Parameter request: The request to normalize
     /// - Returns: The normalized request
     func normalizedRequest(for request: URLRequest) -> URLRequest
+
+    func requestCanInit(with request: URLRequest) -> Bool
 }
 
 /// Public-facing errors that MockDuck can throw.
@@ -44,6 +46,10 @@ public final class MockDuck {
         willSet {
             checkConfigureMockDuck()
         }
+    }
+    
+    public static func requestCanInit(with request: URLRequest) -> Bool {
+        return delegate?.requestCanInit(with: request) ?? true
     }
 
     /// By default, MockDuck is enabled, even though it does nothing until configured by setting

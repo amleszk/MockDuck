@@ -24,7 +24,7 @@ class MockURLProtocol: URLProtocol, URLSessionDelegate, URLSessionDataDelegate {
 
     override class func canInit(with request: URLRequest) -> Bool {
         guard
-            MockDuck.enabled,
+            MockDuck.enabled, MockDuck.requestCanInit(with: request),
             (request.url?.scheme == "http" || request.url?.scheme == "https")
             else { return false }
 
