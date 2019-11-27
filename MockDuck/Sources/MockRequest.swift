@@ -13,10 +13,6 @@ import Foundation
 final class MockRequest {
     var request: URLRequest
 
-    private(set) lazy var normalizedRequest: URLRequest = {
-        return MockDuck.delegate?.normalizedRequest(for: request) ?? request
-    }()
-
     init(request: URLRequest) {
         self.request = request
     }

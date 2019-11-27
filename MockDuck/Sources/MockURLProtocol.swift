@@ -12,7 +12,7 @@ import Foundation
 /// stub out the responses. One of these is instantiated per request.
 class MockURLProtocol: URLProtocol, URLSessionDelegate, URLSessionDataDelegate {
     private struct Constants {
-        static let ProtocolHandled = "com.buzzfeed.MockDuck.URLProtocolHandled"
+        static let ProtocolHandled = "MockURLProtocolHandled"
     }
 
     var sessionTask: URLSessionTask?
@@ -24,7 +24,7 @@ class MockURLProtocol: URLProtocol, URLSessionDelegate, URLSessionDataDelegate {
 
     override class func canInit(with request: URLRequest) -> Bool {
         guard
-            MockDuck.enabled,
+            MockDuck.enabled, MockDuck.requestCanInit(with: request),
             (request.url?.scheme == "http" || request.url?.scheme == "https")
             else { return false }
 
@@ -68,7 +68,6 @@ class MockURLProtocol: URLProtocol, URLSessionDelegate, URLSessionDataDelegate {
                 }
             }
         )
-
         sessionTask?.resume()
     }
 
@@ -76,4 +75,4 @@ class MockURLProtocol: URLProtocol, URLSessionDelegate, URLSessionDataDelegate {
         sessionTask?.cancel()
         sessionTask = nil
     }
-}
+ }

@@ -11,11 +11,13 @@ import Foundation
 
 final class CryptoUtils {
     static func md5(_ data: Data) -> String {
-        let hash = data.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) -> [UInt8] in
-            var hash = [UInt8](repeating: 0, count: Int(CC_MD5_DIGEST_LENGTH))
-            CC_MD5(bytes.baseAddress, CC_LONG(data.count), &hash)
-            return hash
+        var digestData = Data(count: Int(CC_MD5_DIGEST_LENGTH))
+        _ = digestData.withUnsafeMutableBytes { digestBytes in
+            data.withUnsafeBytes { messageBytes in
+                CC_MD5(messageBytes, CC_LONG(data.count), digestBytes)
+            }
         }
-        return hash.map { String(format: "%02hhx", $0) }.joined()
+
+        return digestData.map { String(format: "%02hhx", $0) }.joined()
     }
 }
