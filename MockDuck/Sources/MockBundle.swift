@@ -58,37 +58,33 @@ final class MockBundle {
                 let data = try Data(contentsOf: targetURL)
 
                 let chain: MockRequestResponseChain = try decoder.decode(MockRequestResponseChain.self, from: data)
-                let sequence: MockRequestResponse
+                let mockRequestResponse: MockRequestResponse
                 if request.url?.path.contains("bill") ?? false {
                     os_log("responseData from", log: MockDuck.log, type: .debug)
                 }
                 if request.url?.path.contains("delivery_info") ?? false {
                     os_log("responseData from", log: MockDuck.log, type: .debug)
                 }
-                if chain.mockRequestResponses.count > fileSequence {
-                    sequence = chain.mockRequestResponses[fileSequence]
-                } else
-                {
-                    sequence = chain.mockRequestResponses.first!
-                }
+                let fileSequenceWithRestartedNumbering = fileSequence < chain.mockRequestResponses.count ? fileSequence : 0 
+                mockRequestResponse = chain.mockRequestResponses[fileSequenceWithRestartedNumbering]
 
                 // Load the response data if the format is supported.
                 // This should be the same filename with a different extension.
-                if let dataFileName = SerializationUtils.fileName(for: .responseData(sequence, sequence), chainSequenceIndex: fileSequence) {
+                if let dataFileName = SerializationUtils.fileName(for: .responseData(mockRequestResponse, mockRequestResponse), chainSequenceIndex: fileSequenceWithRestartedNumbering) {
                     let dataURL = targetLoadingURL.appendingPathComponent(dataFileName)
                     os_log("responseData from: %@", log: MockDuck.log, type: .debug, "\(dataURL)")
-                    sequence.responseData = try Data(contentsOf: dataURL)
+                    mockRequestResponse.responseData = try Data(contentsOf: dataURL)
                 }
 
                 // Load the request body if the format is supported.
                 // This should be the same filename with a different extension.
-                if let bodyFileName = SerializationUtils.fileName(for: .requestBody(sequence), chainSequenceIndex: fileSequence) {
+                if let bodyFileName = SerializationUtils.fileName(for: .requestBody(mockRequestResponse), chainSequenceIndex: fileSequenceWithRestartedNumbering) {
                     let bodyURL = targetLoadingURL.appendingPathComponent(bodyFileName)
                     os_log("request.httpBody from: %@", log: MockDuck.log, type: .debug, "\(bodyURL)")
-                    sequence.request.httpBody = try Data(contentsOf: bodyURL)
+                    mockRequestResponse.request.httpBody = try Data(contentsOf: bodyURL)
                 }
                 
-                result = sequence
+                result = mockRequestResponse
             } catch {
                 os_log("Error decoding JSON: %@", log: MockDuck.log, type: .error, "\(error)")
             }

@@ -56,6 +56,7 @@ final class MockDataTask: URLSessionDataTask {
             })
             fallbackTask?.resume()
         } else {
+            MockDuck.mockDuckReplayRequestNotFound(request)
             // The request isn't found and we shouldn't fallback to the network. Return a
             // well-crafted error in the completion.
             let fileName = SerializationUtils.fileName(for: .request(request))
