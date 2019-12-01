@@ -82,7 +82,7 @@ private extension URLRequest {
             hashData.append(urlData)
         }
 
-        if let body = normalizedRequest.httpBody {
+        if let body = normalizedRequest.bodySteamData() {
             hashData.append(body)
         }
 
@@ -143,6 +143,41 @@ extension MockSerializableData {
         } else if contentType.contains("application/") && contentType.contains("json") {
             return "json"
         } else {
+            return nil
+        }
+    }
+}
+
+
+public extension URLRequest {
+
+    func bodySteamData() -> Data? {
+        guard let bodyStream = self.httpBodyStream else {
+            return nil
+        }
+
+        bodyStream.open()
+        // Will read 16 chars per iteration. Can use bigger buffer if needed
+        let bufferSize: Int = 16
+        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        var data = Data()
+        while bodyStream.hasBytesAvailable {
+            let readDat = bodyStream.read(buffer, maxLength: bufferSize)
+            data.append(buffer, count: readDat)
+        }
+        buffer.deallocate()
+        bodyStream.close()
+        return data
+    }
+
+    func bodySteamAsJSON() -> Any? {
+        guard let data = self.bodySteamData() else {
+            return nil
+        }
+        do {
+            return try JSONSerialization.jsonObject(with: data, options: JSONSerialization.ReadingOptions.allowFragments)
+        } catch {
+            print(error.localizedDescription)
             return nil
         }
     }

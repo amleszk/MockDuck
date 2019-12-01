@@ -33,7 +33,7 @@ final class SerializationUtils {
             }
         case .responseData(let request, let response):
             return response.serializableResponse.dataSuffix.flatMap {
-                "\(request.serializableRequest.baseName)-\(response.requestHash)-response-\(chainSequenceIndex).\($0)"
+                "\(request.serializableRequest.baseName)-\(request.requestHash)-response-\(chainSequenceIndex).\($0)"
             }
         }
 

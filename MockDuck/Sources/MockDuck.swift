@@ -22,6 +22,8 @@ public protocol MockDuckDelegate: class {
     /// - Returns: The normalized request
     func normalizedRequest(for request: URLRequest) -> URLRequest
 
+    func normalizedResponseData(for data: Data?, request: URLRequest) -> Data?
+
     func requestCanInit(with request: URLRequest) -> Bool
 
     func mockDuckReplayRequestNotFound(_ request: URLRequest)

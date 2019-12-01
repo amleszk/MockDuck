@@ -59,29 +59,33 @@ final class MockBundle {
 
                 let chain: MockRequestResponseChain = try decoder.decode(MockRequestResponseChain.self, from: data)
                 let mockRequestResponse: MockRequestResponse
-                if request.url?.path.contains("bill") ?? false {
-                    os_log("responseData from", log: MockDuck.log, type: .debug)
-                }
-                if request.url?.path.contains("delivery_info") ?? false {
-                    os_log("responseData from", log: MockDuck.log, type: .debug)
-                }
                 let fileSequenceWithRestartedNumbering = fileSequence < chain.mockRequestResponses.count ? fileSequence : 0 
                 mockRequestResponse = chain.mockRequestResponses[fileSequenceWithRestartedNumbering]
 
                 // Load the response data if the format is supported.
                 // This should be the same filename with a different extension.
-                if let dataFileName = SerializationUtils.fileName(for: .responseData(mockRequestResponse, mockRequestResponse), chainSequenceIndex: fileSequenceWithRestartedNumbering) {
+                if let dataFileName = SerializationUtils.fileName(for: .responseData(request, mockRequestResponse), chainSequenceIndex: fileSequenceWithRestartedNumbering) {
                     let dataURL = targetLoadingURL.appendingPathComponent(dataFileName)
-                    os_log("responseData from: %@", log: MockDuck.log, type: .debug, "\(dataURL)")
+                    if !FileManager.default.fileExists(atPath: dataURL.path) {
+                        os_log("responseData loading error from: %@", log: MockDuck.log, type: .error, "\(dataURL)")
+                    } else {
+                        os_log("responseData from: %@", log: MockDuck.log, type: .debug, "\(dataURL)")
+                    }
                     mockRequestResponse.responseData = try Data(contentsOf: dataURL)
                 }
 
                 // Load the request body if the format is supported.
                 // This should be the same filename with a different extension.
-                if let bodyFileName = SerializationUtils.fileName(for: .requestBody(mockRequestResponse), chainSequenceIndex: fileSequenceWithRestartedNumbering) {
-                    let bodyURL = targetLoadingURL.appendingPathComponent(bodyFileName)
-                    os_log("request.httpBody from: %@", log: MockDuck.log, type: .debug, "\(bodyURL)")
-                    mockRequestResponse.request.httpBody = try Data(contentsOf: bodyURL)
+                if let dataFileName = SerializationUtils.fileName(for: .requestBody(request), chainSequenceIndex: fileSequenceWithRestartedNumbering) {
+                    let dataURL = targetLoadingURL.appendingPathComponent(dataFileName)
+                    if !FileManager.default.fileExists(atPath: dataURL.path) {
+                        os_log("responseData loading error from: %@", log: MockDuck.log, type: .error, "\(dataURL)")
+                    } else {
+                        os_log("responseData from: %@", log: MockDuck.log, type: .debug, "\(dataURL)")
+                    }
+
+                    os_log("request.httpBody from: %@", log: MockDuck.log, type: .debug, "\(dataURL)")
+                    mockRequestResponse.request.httpBody = try Data(contentsOf: dataURL)
                 }
                 
                 result = mockRequestResponse
@@ -130,7 +134,7 @@ final class MockBundle {
                 // This should be the same filename with a different extension.
                 if let requestBodyFileName = SerializationUtils.fileName(for: .requestBody(requestResponse), chainSequenceIndex: chainSequenceIndex) {
                     let requestBodyURL = recordingURL.appendingPathComponent(requestBodyFileName)
-                    let request = (requestResponse.request.httpBody ?? Data()).prettyPrintedJSONData
+                    let request = (requestResponse.request.bodySteamData() ?? Data()).prettyPrintedJSONData
                     try request.write(to: requestBodyURL, options: [.atomic])
                 }
 
