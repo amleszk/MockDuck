@@ -103,6 +103,11 @@ final class MockBundle {
     ///
     /// - Parameter requestResponse: MockRequestResponse containing the request, response, and data
     func record(requestResponse: MockRequestResponse) {
+        if let delegate = MockDuck.delegate {
+            requestResponse.responseData =
+            delegate.normalizedResponseData(for: requestResponse.responseData, request: requestResponse.request)
+        }
+
         guard
             let recordingURL = recordingURL,
             let outputFileName =  SerializationUtils.fileName(for: .request(requestResponse))
