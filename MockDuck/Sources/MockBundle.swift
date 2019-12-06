@@ -28,7 +28,7 @@ final class MockBundle {
     /// - Parameter request: URLRequest to attempt to load
     /// - Returns: The MockRequestResponse, if it can be loaded
     func loadRequestResponse(for request: URLRequest, fileSequence: Int) -> MockRequestResponse? {
-        guard let fileName = SerializationUtils.fileName(for: .request(request)) else {
+        guard let fileName = SerializationUtils.fileName(for: .request(request), chainSequenceIndex: fileSequence) else {
             return nil
         }
 
