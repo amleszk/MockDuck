@@ -187,10 +187,7 @@ public extension URLRequest {
             return nil
         }
 
-        let authValues: String =
-            (json["scope"] as? String ?? "") +
-            (json["email"] as? String ?? "") +
-            (json["password"] as? String ?? "")
+        let authValues: String = (json["scope"] as? String ?? "")
         return authValues.data(using: String.Encoding.utf8)
     }
 }
