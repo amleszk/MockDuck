@@ -46,6 +46,7 @@ final class MockDataTask: URLSessionDataTask {
                 } else if let response = response {
                     let requestResponse = MockRequestResponse(request: self.request, response: response, responseData: data)
                     MockDuck.mockBundle.record(requestResponse: requestResponse)
+                    //assertRequestIsLoadable(request: self.request, response: response, responseData: data)
                     SerializationUtils.incrementFileSequence(request: self.request)
                     self.completion(requestResponse, nil)
                 } else {
@@ -72,4 +73,50 @@ final class MockDataTask: URLSessionDataTask {
         fallbackTask?.cancel()
         fallbackTask = nil
     }
+}
+
+private func assertRequestIsLoadable(request: URLRequest, response: URLResponse, responseData: Data?) {
+    let fileSequence = SerializationUtils.fileSequence(request: request)
+
+    // Set temporarily to allow for testing the loading of the request
+    MockDuck.loadingURL = MockDuck.recordingURL
+
+    guard let loadedRequestResponse = MockDuck.mockBundle.loadRequestResponse(for: request, fileSequence: fileSequence) else {
+        MockDuck.loadingURL = nil
+        let fileName = SerializationUtils.fileName(for: .request(request), chainSequenceIndex: fileSequence)
+        let allFiles = FileManager.default.subpaths(atPath: MockDuck.recordingURL!.path)
+        let message =
+        """
+        \(#file):\(#function)
+        Mock recording failed for
+        files path = \(MockDuck.recordingURL!.path)
+        all files = \(allFiles)
+        file name: \(fileName)
+        file sequence: \(fileSequence)
+        request: \(request.debugDescription)
+        response: \(response.debugDescription)
+        data: \(responseData?.prettyPrintedJSONString)
+        """
+        print(message)
+        return
+    }
+
+    let requestIsEqual = request == loadedRequestResponse.request
+    if !requestIsEqual {
+        print("FAILED: requestIsEqual")
+    }
+    let requestHashIsEqual = request.requestHash == loadedRequestResponse.requestHash
+    if !requestHashIsEqual {
+        print("FAILED: requestHashIsEqual")
+    }
+    let responseIsEqual = response.isEqual(loadedRequestResponse.response)
+    if !responseIsEqual {
+        print("FAILED: responseIsEqual")
+    }
+    let responseDataIsEqual = responseData == loadedRequestResponse.responseData
+    if !responseDataIsEqual {
+        print("FAILED: responseDataIsEqual")
+    }
+    MockDuck.loadingURL = nil
+    //    let serializableRequestDataIsEqual = request.serializableRequest == loadedRequestResponse.serializableRequest
 }

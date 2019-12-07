@@ -59,7 +59,7 @@ final class MockBundle {
 
                 let chain: MockRequestResponseChain = try decoder.decode(MockRequestResponseChain.self, from: data)
                 let mockRequestResponse: MockRequestResponse
-                let fileSequenceWithRestartedNumbering = fileSequence < chain.mockRequestResponses.count ? fileSequence : 0 
+                let fileSequenceWithRestartedNumbering = fileSequence < chain.mockRequestResponses.count ? fileSequence : 0
                 mockRequestResponse = chain.mockRequestResponses[fileSequenceWithRestartedNumbering]
 
                 // Load the response data if the format is supported.
@@ -87,7 +87,7 @@ final class MockBundle {
                     os_log("request.httpBody from: %@", log: MockDuck.log, type: .debug, "\(dataURL)")
                     mockRequestResponse.request.httpBody = try Data(contentsOf: dataURL)
                 }
-                
+
                 result = mockRequestResponse
             } catch {
                 os_log("Error decoding JSON: %@", log: MockDuck.log, type: .error, "\(error)")
@@ -105,7 +105,7 @@ final class MockBundle {
     func record(requestResponse: MockRequestResponse) {
         if let delegate = MockDuck.delegate {
             requestResponse.responseData =
-            delegate.normalizedResponseData(for: requestResponse.responseData, request: requestResponse.request)
+                delegate.normalizedResponseData(for: requestResponse.responseData, request: requestResponse.request)
         }
 
         guard

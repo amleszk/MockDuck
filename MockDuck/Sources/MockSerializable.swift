@@ -20,7 +20,7 @@ import os
  Also complicating matters is that there is a small amount of logic that needs to be consistent
  across all implementations.  So, for something like 'requestHash', the same value is based on the
  request, so the response object need to be able to return that value as well.
-*/
+ */
 
 protocol MockSerializableData {
     var headers: [String: String]? { get }
@@ -82,7 +82,7 @@ private extension URLRequest {
             hashData.append(urlData)
         }
 
-        if let body = normalizedRequest.bodySteamData() {
+        if let body = normalizedRequest.bodySteamHashable() {
             hashData.append(body)
         }
 
@@ -180,5 +180,17 @@ public extension URLRequest {
             print(error.localizedDescription)
             return nil
         }
+    }
+
+    func bodySteamHashable() -> Data? {
+        guard var json = bodySteamAsJSON() as? [String : AnyHashable] else {
+            return nil
+        }
+
+        let authValues: String =
+            (json["scope"] as? String ?? "") +
+            (json["email"] as? String ?? "") +
+            (json["password"] as? String ?? "")
+        return authValues.data(using: String.Encoding.utf8)
     }
 }
